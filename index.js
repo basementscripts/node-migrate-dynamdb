@@ -11,7 +11,8 @@
  */
 
 const MigrationSet = require('./lib/set')
-const FileStore = require('./lib/file-store')
+// const FileStore = require("./lib/file-store");
+const DynamoDbStore = require('./src/DynamoDbStore')
 const loadMigrationsIntoSet = require('./lib/load-migrations')
 
 /**
@@ -20,20 +21,20 @@ const loadMigrationsIntoSet = require('./lib/load-migrations')
 
 exports = module.exports = migrate
 
-function migrate (title, up, down) {
-  // migration
-  if (typeof title === 'string' && up && down) {
-    migrate.set.addMigration(title, up, down)
-  // specify migration file
-  } else if (typeof title === 'string') {
-    migrate.set = exports.load(title)
-  // no migration path
-  } else if (!migrate.set) {
-    throw new Error('must invoke migrate(path) before running migrations')
-  // run migrations
-  } else {
-    return migrate.set
-  }
+function migrate(title, up, down) {
+	// migration
+	if (typeof title === 'string' && up && down) {
+		migrate.set.addMigration(title, up, down)
+		// specify migration file
+	} else if (typeof title === 'string') {
+		migrate.set = exports.load(title)
+		// no migration path
+	} else if (!migrate.set) {
+		throw new Error('must invoke migrate(path) before running migrations')
+		// run migrations
+	} else {
+		return migrate.set
+	}
 }
 
 /**
@@ -42,23 +43,27 @@ function migrate (title, up, down) {
 exports.MigrationSet = MigrationSet
 
 exports.load = function (options, fn) {
-  const opts = options || {}
+	const opts = options || {}
 
-  // Create default store
-  const store = (typeof opts.stateStore === 'string') ? new FileStore(opts.stateStore) : opts.stateStore
+	// Create default store
+	const store =
+		typeof opts.stateStore === 'string' ? new DynamoDbStore(opts.stateStore) : opts.stateStore
 
-  // Create migration set
-  const set = new MigrationSet(store)
+	// Create migration set
+	const set = new MigrationSet(store)
 
-  loadMigrationsIntoSet({
-    set,
-    store,
-    migrations: opts.migrations,
-    migrationsDirectory: opts.migrationsDirectory,
-    filterFunction: opts.filterFunction,
-    sortFunction: opts.sortFunction,
-    ignoreMissing: opts.ignoreMissing
-  }, function (err) {
-    fn(err, set)
-  })
+	loadMigrationsIntoSet(
+		{
+			set,
+			store,
+			migrations: opts.migrations,
+			migrationsDirectory: opts.migrationsDirectory,
+			filterFunction: opts.filterFunction,
+			sortFunction: opts.sortFunction,
+			ignoreMissing: opts.ignoreMissing
+		},
+		function (err) {
+			fn(err, set)
+		}
+	)
 }

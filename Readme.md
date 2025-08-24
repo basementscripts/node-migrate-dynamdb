@@ -7,9 +7,15 @@
 
 Abstract migration framework for node.
 
+## Configure
+
+Copy the `.env.example` to `.env` and configure the environment variables as needed. Defaults provided.
+
+**Make sure you create the dynamodb table that will hold the migrations.<br/>Default is `datamigirations`**
+
 ## Installation
 
-    $ npm install migrate
+    $ npm install @basementscripts/node-migrate-dynamodb
 
 ## Usage
 
@@ -31,7 +37,7 @@ Commands:
   help [cmd]     display help for [cmd]
 ```
 
-For help with the individual commands, see `migrate help [cmd]`.  Each command has some helpful flags
+For help with the individual commands, see `migrate help [cmd]`. Each command has some helpful flags
 for customising the behavior of the tool.
 
 ## Programmatic usage
@@ -39,19 +45,22 @@ for customising the behavior of the tool.
 ```javascript
 var migrate = require('migrate')
 
-migrate.load({
-  stateStore: '.migrate'
-}, function (err, set) {
-  if (err) {
-    throw err
-  }
-  set.up(function (err) {
-    if (err) {
-      throw err
-    }
-    console.log('migrations successfully ran')
-  })
-})
+migrate.load(
+	{
+		stateStore: '.migrate'
+	},
+	function (err, set) {
+		if (err) {
+			throw err
+		}
+		set.up(function (err) {
+			if (err) {
+				throw err
+			}
+			console.log('migrations successfully ran')
+		})
+	}
+)
 ```
 
 ## Creating Migrations
@@ -62,11 +71,11 @@ To create a migration, execute `migrate create <title>` with a title. By default
 'use strict'
 
 module.exports.up = function (next) {
-  next()
+	next()
 }
 
 module.exports.down = function (next) {
-  next()
+	next()
 }
 ```
 
@@ -83,49 +92,49 @@ The first call creates `./migrations/{timestamp in milliseconds}-add-pets.js`, w
 
 ```javascript
 // db is just an object shared between the migrations
-var db = require('./db');
+var db = require('./db')
 
 exports.up = function (next) {
-  db.pets = [];
-  db.pets.push('tobi')
-  db.pets.push('loki')
-  db.pets.push('jane')
-  next()
+	db.pets = []
+	db.pets.push('tobi')
+	db.pets.push('loki')
+	db.pets.push('jane')
+	next()
 }
 
 exports.down = function (next) {
-  db.pets.pop('pets')
-  db.pets.pop('pets')
-  db.pets.pop('pets')
-  delete db.pets
-  next()
+	db.pets.pop('pets')
+	db.pets.pop('pets')
+	db.pets.pop('pets')
+	delete db.pets
+	next()
 }
 ```
 
 The second creates `./migrations/{timestamp in milliseconds}-add-owners.js`, which we can populate:
 
 ```javascript
-var db = require('./db');
+var db = require('./db')
 
 exports.up = function (next) {
-  db.owners = [];
-  db.owners.push('taylor')
-  db.owners.push('tj', next)
+	db.owners = []
+	db.owners.push('taylor')
+	db.owners.push('tj', next)
 }
 
 exports.down = function (next) {
-  db.owners.pop()
-  db.owners.pop()
-  delete db.owners
-  next()
+	db.owners.pop()
+	db.owners.pop()
+	delete db.owners
+	next()
 }
 ```
 
 ### Advanced migration creation
 
 When creating migrations you have a bunch of other options to help you control how the migrations
-are created.  You can fully configure the way the migration is made with a `generator`, which is just a 
-function exported as a node module.  A good example of a generator is the  default one [shipped with
+are created. You can fully configure the way the migration is made with a `generator`, which is just a
+function exported as a node module. A good example of a generator is the default one [shipped with
 this package](https://github.com/tj/node-migrate/blob/b282cacbb4c0e73631d651394da52396131dd5de/lib/template-generator.js).
 
 The `create` command accepts a flag for pointing the tool at a generator, for example:
@@ -134,7 +143,7 @@ The `create` command accepts a flag for pointing the tool at a generator, for ex
 $ migrate create --generator ./my-migrate-generator.js
 ```
 
-A more simple and common thing you might want is to just change the default template file which is created.  To do this, you
+A more simple and common thing you might want is to just change the default template file which is created. To do this, you
 can simply pass the `template-file` flag:
 
 ```
@@ -142,7 +151,7 @@ $ migrate create --template-file ./my-migration-template.js
 ```
 
 Lastly, if you want to use newer ECMAscript features, or language addons like TypeScript, for your migrations, you can
-use the `compiler` flag.  For example, to use babel with your migrations, you can do the following:
+use the `compiler` flag. For example, to use babel with your migrations, you can do the following:
 
 ```
 $ npm install --save babel-register
@@ -163,7 +172,7 @@ $ migrate
   migration : complete
 ```
 
-Subsequent attempts will simply output "complete", as they have already been executed. `migrate` knows this because it stores the current state in 
+Subsequent attempts will simply output "complete", as they have already been executed. `migrate` knows this because it stores the current state in
 `./.migrate` which is typically a file that SCMs like GIT should ignore.
 
 ```
@@ -211,12 +220,12 @@ The description can be added by exporting a `description` field from the migrati
 
 ## Custom State Storage
 
-By default, `migrate` stores the state of the migrations which have been run in a file (`.migrate`).  But you
+By default, `migrate` stores the state of the migrations which have been run in a file (`.migrate`). But you
 can provide a custom storage engine if you would like to do something different, like storing them in your database of choice.
-A storage engine has a simple interface of `load(fn)` and `save(set, fn)`.  As long as what goes in as `set` comes out
+A storage engine has a simple interface of `load(fn)` and `save(set, fn)`. As long as what goes in as `set` comes out
 the same on `load`, then you are good to go!
 
-If you are using the provided cli, you can specify the store implementation with the `--store` flag, which should be a `require`-able node module.  For example:
+If you are using the provided cli, you can specify the store implementation with the `--store` flag, which should be a `require`-able node module. For example:
 
 ```
 $ migrate up --store="my-migration-store"
@@ -226,7 +235,7 @@ $ migrate up --store="my-migration-store"
 
 ### `migrate.load(opts, cb)`
 
-Calls the callback with a `Set` based on the options passed.  Options:
+Calls the callback with a `Set` based on the options passed. Options:
 
 - `set`: A set instance if you created your own
 - `stateStore`: A store instance to load and store migration state, or a string which is a path to the migration state file

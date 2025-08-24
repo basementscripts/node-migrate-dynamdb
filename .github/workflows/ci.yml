@@ -1,0 +1,78 @@
+name: Build and Publish @basementscripts/node-migrate-dynamodb Package
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  # Build and publish the @basementscripts/node-migrate-dynamodb package
+  build-publish-data-adapter:
+    name: Build and Publish @basementscripts/node-migrate-dynamodb Package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Node.js environment including the .npmrc configuration
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          registry-url: https://npm.pkg.github.com
+          scope: '@basementscripts'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+
+      # @basementscripts/node-migrate-dynamodb
+      # Extract @basementscripts/node-migrate-dynamodb target package version
+      - name: Extract @basementscripts/node-migrate-dynamodb target package version
+        uses: sergeysova/jq-action@v2
+        id: data-adapter-target-version
+        with:
+          cmd: 'jq .version package.json -r'
+
+      # Extract @basementscripts/node-migrate-dynamodb published package version
+      - name: Extract @basementscripts/node-migrate-dynamodb published package version
+        uses: sergeysova/jq-action@v2
+        id: data-adapter-published-version
+        with:
+          cmd: |
+            sed -e 's/^"//' -e 's/"$//' <<< "$(curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/orgs/basementscripts/packages/npm/node-migrate-dynamodb/versions | jq .[0].name)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.AUTH_TOKEN }}
+
+      - name: Show JS Utils target and published versions
+        run: |
+          echo "JS Utils target version: ${{ steps.data-adapter-target-version.outputs.value }}"
+          echo "JS Utils published version: ${{ steps.data-adapter-published-version.outputs.value }}"
+
+      # Build and publish the @basementscripts/node-migrate-dynamodb package
+      - name: Build and Publish @basementscripts/node-migrate-dynamodb Package
+        if: steps.data-adapter-target-version.outputs.value != steps.data-adapter-published-version.outputs.value
+        # Continue the workflow even if the package version is not new
+        continue-on-error: true
+        run: |
+          echo "${{steps.data-adapter-target-version.outputs.value}}"
+          echo "${{steps.data-adapter-published-version.outputs.value}}"
+          mkdir -p /home/runner/work/_temp/data-adapter
+          cp -R ./* /home/runner/work/_temp/data-adapter
+          cp ./.npmignore /home/runner/work/_temp/data-adapter/.npmignore
+          cd /home/runner/work/_temp/data-adapter
+          yarn
+          yarn build
+          yarn --production
+          npm publish
+          cd $GITHUB_WORKSPACE
