@@ -36,14 +36,14 @@ jobs:
       # Extract @basementscripts/node-migrate-dynamodb target package version
       - name: Extract @basementscripts/node-migrate-dynamodb target package version
         uses: sergeysova/jq-action@v2
-        id: data-adapter-target-version
+        id: migrate-dynamodb-target-version
         with:
           cmd: 'jq .version package.json -r'
 
       # Extract @basementscripts/node-migrate-dynamodb published package version
       - name: Extract @basementscripts/node-migrate-dynamodb published package version
         uses: sergeysova/jq-action@v2
-        id: data-adapter-published-version
+        id: migrate-dynamodb-published-version
         with:
           cmd: |
             sed -e 's/^"//' -e 's/"$//' <<< "$(curl -L \
@@ -56,23 +56,21 @@ jobs:
 
       - name: Show JS Utils target and published versions
         run: |
-          echo "JS Utils target version: ${{ steps.data-adapter-target-version.outputs.value }}"
-          echo "JS Utils published version: ${{ steps.data-adapter-published-version.outputs.value }}"
+          echo "Migrate DynamoDB target version: ${{ steps.migrate-dynamodb-target-version.outputs.value }}"
+          echo "Migrate DynamoDB published version: ${{ steps.migrate-dynamodb-published-version.outputs.value }}"
 
       # Build and publish the @basementscripts/node-migrate-dynamodb package
       - name: Build and Publish @basementscripts/node-migrate-dynamodb Package
-        if: steps.data-adapter-target-version.outputs.value != steps.data-adapter-published-version.outputs.value
+        if: steps.migrate-dynamodb-target-version.outputs.value != steps.migrate-dynamodb-published-version.outputs.value
         # Continue the workflow even if the package version is not new
         continue-on-error: true
         run: |
-          echo "${{steps.data-adapter-target-version.outputs.value}}"
-          echo "${{steps.data-adapter-published-version.outputs.value}}"
-          mkdir -p /home/runner/work/_temp/data-adapter
-          cp -R ./* /home/runner/work/_temp/data-adapter
-          cp ./.npmignore /home/runner/work/_temp/data-adapter/.npmignore
-          cd /home/runner/work/_temp/data-adapter
-          yarn
-          yarn build
+          echo "${{steps.migrate-dynamodb-target-version.outputs.value}}"
+          echo "${{steps.migrate-dynamodb-published-version.outputs.value}}"
+          mkdir -p /home/runner/work/_temp/migrate-dynamodb
+          cp -R ./* /home/runner/work/_temp/migrate-dynamodb
+          cp ./.npmignore /home/runner/work/_temp/migrate-dynamodb/.npmignore
+          cd /home/runner/work/_temp/migrate-dynamodb
           yarn --production
           npm publish
           cd $GITHUB_WORKSPACE
